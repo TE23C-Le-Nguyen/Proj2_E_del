@@ -1,19 +1,21 @@
 package proj2_e;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
+
+import com.google.gson.*;
+import java.lang.reflect.Type;
+import com.google.gson.reflect.TypeToken;
+import kong.unirest.*;
 import java.util.ArrayList;
 import java.util.Scanner;
+
 public class LibraryClient {
     private static final String SERVER_URL = "http://10.151.168.5:3107";
-    private static ArrayList<Magazine> Book = new ArrayList<>();
-    private static ArrayList<Book> Magazine = new ArrayList<>();
+    private static ArrayList<Magazine> magazines = new ArrayList<>();
+    private static ArrayList<Book> books = new ArrayList<>();
     private static Scanner scanner = new Scanner(System.in);
 
     public static void main(String[] args) {
         boolean running = true;
-        while ( (running)) {
+        while ((running)) {
             System.out.println("BIBLIOTEK");
             System.out.println("1. Hämta böcker från server");
             System.out.println("2. Hämta tidningar från server");
@@ -48,8 +50,9 @@ public class LibraryClient {
 
                 case "6":
                     System.out.println("Avslutar");
+                    running = false;
                     break;
-            
+
                 default:
                     System.out.println("Ogiltigt val");
                     break;
@@ -57,52 +60,51 @@ public class LibraryClient {
         }
     }
 
-    private static String getFromServer(String urlString) throws Exception{
-        URL url = new URL(urlString);
-        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+    private static String getFromServer(String urlString) throws Exception {
+        
+        HttpResponse<String> response = Unirest.get(urlString).asString();
+        String json_data = response.getBody();
+        return json_data;
 
-        BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-
-        StringBuilder sb = new StringBuilder();
-        String line;
-
-        while ((line = reader.readLine()) != null){
-            sb.append(line);
-        }
-
-        reader.close();
-        return sb.toString();
     }
 
     private static void fetchBooks() {
         try {
             String json = getFromServer(SERVER_URL + "/books");
-
-            System.out.println("Böcker hämtade!");
-            System.out.println(json);
+            Type listType = new TypeToken<ArrayList<Book>>() {}.getType();
+            books = new Gson().fromJson(json, listType);
+            System.out.println("Böcker hämtade! Antal: " + books.size());
         } catch (Exception e) {
-            System.out.println("Fel vid hämtning av böcker");
+            e.printStackTrace();
         }
+        System.out.println("Tryck enter för att fortsätta...");
+        scanner.nextLine();
     }
 
     private static void fetchMagazines() {
         try {
             String json = getFromServer(SERVER_URL + "/magazines");
-
-            System.out.println("Magazine hämtade!");
-            System.out.println(json);
+            Type listType = new TypeToken<ArrayList<Magazine>>() {
+            }.getType();
+            magazines = new Gson().fromJson(json, listType);
+            System.out.println("Magazine hämtade! Antal: " + magazines.size());
         } catch (Exception e) {
-            System.out.println("Fel vid hämtning av magazine");
+            e.printStackTrace();
         }
+        System.out.println("Tryck enter för att fortsätta...");
+        scanner.nextLine();
     }
 
-    private static void printAll() {
+    private static void printAll() {2
+        System.out.println("Antal böcker: " + books.size());     
+    System.out.println("Antal magazines: " + magazines.size());
         System.out.println("Böcker");
         if (books.isEmpty()) {
             System.out.println("Inga böcker sparade lokalt");
         } else {
             for (Book b : books) {
-                System.out.println(b);
+                b.displayInfo();
+                ;
             }
         }
 
@@ -111,7 +113,8 @@ public class LibraryClient {
             System.out.println("Inga magazines sparade lokalt");
         } else {
             for (Magazine m : magazines) {
-                System.out.println(m);
+                m.displayInfo();
+                ;
             }
         }
     }
@@ -127,9 +130,31 @@ public class LibraryClient {
         String genre = scanner.nextLine();
 
         System.out.println("Sidor: ");
-        String pages = Integer.parseInt(scanner.nextLine());
+        int pages = Integer.parseInt(scanner.nextLine());
 
+        books.add(new Book(String.valueOf(books.size() + 1), title, author, genre, pages, true));
+
+        System.out.println("bok tillagd");
 
     }
-    
+
+    private static void addMagazine() {
+        System.out.println("Titel: ");
+        String title = scanner.nextLine();
+
+        System.out.println("Issues number: ");
+        int issues = Integer.parseInt(scanner.nextLine());
+
+        System.out.println("Kategory: ");
+        String category = scanner.nextLine();
+
+        System.out.println("År: ");
+        int year = Integer.parseInt(scanner.nextLine());
+
+        magazines.add(new Magazine(String.valueOf(magazines.size() + 1), title, issues, category, year, true));
+
+        System.out.println("magazine tillagd");
+
+    }
+
 }
